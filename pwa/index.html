@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <link rel="icon" type="image/png" href="pic/book.png">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+<div id="main_body">
+    <div id="header">
+        <h4>Contact Note</h4>
+    </div>
+    <div id="box">
+       <div id="left_side_bar">
+           <button type="button" id="add_note">ADD</button>
+           <button type="button" id="edit_note">EDIT</button> 
+           <button type="button" id="remove_note">DELETE</button> 
+       </div> 
+       <div id="right_side_bar">
+          <div class="row">
+        
+          </div>
+       </div>
+       
+    <div class="overlay" id="overlay">
+       <div class="popup" id="add_popup">
+             <p id="date">Date: </p>
+             <input type="text" id="title" placeholder="Name">
+             <input type="text" id="type_note" placeholder="Contact No#" maxlength="11">
+          <div class="button_box">
+             <button type="submit" id="adding">Submit</button>
+             <button id="cancel">Cancel</button>
+          </div>
+       </div>
+
+       <div class="popup" id="delete_popup">
+            <p>Delete This?</p>
+            <input type="text" id="date-1" placeholder="Date" readonly>
+            <input type="text" id="title-1" placeholder="Title" readonly>
+            <input type="text" id="info-1" placeholder="Info" readonly>
+       <div class="button_box">
+            <button type="submit" id="deleting">Remove</button>
+            <button id="cancel-1">Cancel</button>
+       </div>
+      </div>
+
+      <div class="popup" id="edit_popup">
+        <p>Editing This?</p>
+        <input type="text" id="date-2" placeholder="Date">
+        <input type="text" id="title-2" placeholder="Name">
+        <input type="text" id="info-2" placeholder="Contact No#" maxlength="11">
+      <div class="button_box">
+        <button type="submit" id="editing">Edit</button>
+        <button id="cancel-2">Cancel</button>
+      </div>
+      </div>
+  </div>
+    </div>
+    </div>
+<script type="module">
+  var editNoteButton = document.getElementById('edit_note');
+  var removeNoteButton = document.getElementById('remove_note');
+  var title = document.getElementById("title");
+  var type_note = document.getElementById("type_note");
+  var date = document.getElementById("date");
+  var right_side_bar_row = document.querySelector("#right_side_bar .row");
+
+  var title_2 = document.getElementById("title-2");
+  var info_2 = document.getElementById("info-2");
+  var date_2 = document.getElementById("date-2");
+  
+  var data = [];
+  let id = 0;
+  var click_id = "";
+
+          // Import the functions you need from the SDKs you need
+          import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+          import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-analytics.js";
+          import { getDatabase, ref, set, get, push, child, update, remove} from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+          // TODO: Add SDKs for Firebase products that you want to use
+          // https://firebase.google.com/docs/web/setup#available-libraries
+
+          // Your web app's Firebase configuration
+          // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+          const firebaseConfig = {
+                apiKey: "AIzaSyA9FQJvGZNPeOMdXYrOh0ZikWgR8j_SXD0",
+                authDomain: "note-db-f5f74.firebaseapp.com",
+                databaseURL: "https://note-db-f5f74-default-rtdb.firebaseio.com",
+                projectId: "note-db-f5f74",
+                storageBucket: "note-db-f5f74.appspot.com",
+                messagingSenderId: "1066145463626",
+                appId: "1:1066145463626:web:4c66e5177643f10bb295b3",
+                measurementId: "G-HP6SN5FGW8"
+          };
+          
+
+          // Initialize Firebase
+          const app = initializeApp(firebaseConfig);
+          const analytics = getAnalytics(app);
+          const db = getDatabase(app);
+          const dbRef = ref(db,); 
+       
+          
+function processLocalStorageData() {
+    if (!navigator.onLine) {
+        return;
+    }
+
+    // Process addingData
+    let addingData = localStorage.getItem('addingData');
+    if (addingData) {
+        // Parse and check if addingData is an array or object
+        // If object, convert it to an array for processing
+        addingData = convertAndValidateData(addingData);
+        addingData.forEach((data) => {
+            if (data && typeof data === 'object' && data.id) {
+                // Add data to the realtime database
+                set(ref(db, 'user/' + data.id), {
+                    title: data.title,
+                    info: data.info,
+                    date: data.date
+                });
+            } else {
+                console.error('Invalid data format in addingData:', data);
+            }
+        });
+        localStorage.removeItem('addingData');
+    }
+
+    // Process deleteData
+    let deleteData = localStorage.getItem('deleteData');
+    if (deleteData) {
+        // Parse and check if deleteData is an array or object
+        // If object, convert it to an array for processing
+        deleteData = convertAndValidateData(deleteData);
+        deleteData.forEach((id) => {
+            // Remove data from the realtime database
+            remove(ref(db, 'user/' + id));
+        });
+        localStorage.removeItem('deleteData');
+    }
+
+    // Process editedData
+    let editedData = localStorage.getItem('editedData');
+    if (editedData) {
+        // Parse and check if editedData is an array or object
+        // If object, convert it to an array for processing
+        editedData = convertAndValidateData(editedData);
+        editedData.forEach((data) => {
+            if (data && typeof data === 'object' && data.id) {
+                // Update data in the realtime database
+                update(ref(db, 'user/' + data.id), {
+                    title: data.title,
+                    info: data.info,
+                    date: data.date
+                });
+            } else {
+                console.error('Invalid data format in editedData:', data);
+            }
+        });
+        localStorage.removeItem('editedData');
+    }
+}
+
+function convertAndValidateData(data) {
+    try {
+        data = JSON.parse(data);
+    } catch (e) {
+        console.error('Error parsing data:', e);
+        return [];
+    }
+
+    if (Array.isArray(data)) {
+        return data;
+    } else if (typeof data === 'object') {
+        // Convert object to array
+        return [data];
+    } else {
+        console.error('Invalid data format:', data);
+        return [];
+    }
+}
+
+    processLocalStorageData();
+
+
+
+    get(child(dbRef, "user")).then((snapshot) => {
+          let data = [];
+          snapshot.forEach((childSnapshot) => {
+            let key = childSnapshot.key;
+            let value = childSnapshot.val();
+            data.push({ key, ...value });
+          });
+
+          // Format the data
+          let formattedData = data.map((element) => {
+              return {
+                  id: element.key,
+                  date: element.date,
+                  title: element.title,
+                  info: element.info
+              };
+          });
+
+          // Store the formatted data in localStorage
+          localStorage.setItem('viewingData', JSON.stringify(formattedData));
+      });
+         
+          // Retrieve the data from localStorage
+          let dataStore = JSON.parse(localStorage.getItem('viewingData')) || [];
+
+          // Create a document fragment to hold the HTML elements
+          const fragment = document.createDocumentFragment();
+
+          // Iterate over the data and create HTML elements for each item
+          dataStore.forEach((element) => {
+            const noteDiv = document.createElement('div');
+            noteDiv.classList.add('note');
+            noteDiv.innerHTML = `
+              <div id="image_box">
+                <img src="pic/profile_pic.png">
+              </div>
+              <div id="p_box">
+                <p>${element.date}</p>
+                <p>${element.title}</p>
+                <p>${element.info}</p>
+              </div>
+            `;
+       
+            // Add click event listener to toggle button visibility
+            noteDiv.addEventListener('click', () => {
+
+            click_id = element.id
+            editNoteButton.style.display = 'block';
+            removeNoteButton.style.display = 'block';
+            console.log(click_id);
+
+            });
+
+            fragment.appendChild(noteDiv);
+        });
+          // Display the HTML elements in the right_side_bar
+          const right_side_bar = document.getElementById('right_side_bar');
+          right_side_bar.innerHTML = '';
+          right_side_bar.appendChild(fragment);
+        
+
+    document.getElementById("adding").addEventListener('click', async function(e) {
+    e.preventDefault();
+    if (title.value == "" || type_note.value == "") {
+        alert("must input values");
+    } else if (!(/^\d+$/.test(type_note.value))) {
+        alert("Info must contain only numbers");
+    } else if (type_note.value.length !== 11 || !type_note.value.startsWith("09")) {
+        alert("invalid inputted number");
+    } else {
+        const exists = await info_finder(type_note);
+        if (exists) {
+            alert("number already exists");
+        } else {
+            let newId = await id_finder(id);
+            let newData = {
+                id: newId,
+                title: title.value,
+                info: type_note.value,
+                date: date.textContent,
+            };
+
+           //Add data to local storage
+            let addData = JSON.parse(localStorage.getItem('viewingData')) || [];
+            addData.push(newData);
+            localStorage.setItem('viewingData', JSON.stringify(addData));
+            alert("Data has been stored locally!");
+
+            if (navigator.onLine) {
+                // Online: Add data to real-time database
+                set(ref(db, 'user/' + newId), newData);
+                alert("Data has been sent in Firebase!");
+            }else{
+                localStorage.setItem('addingData', JSON.stringify(newData));
+                alert("Data will be added from the Realtime Database when online.");
+            }
+            location.reload();
+        }
+    }
+});
+
+
+document.getElementById("deleting").addEventListener('click', async function(e) {
+    e.preventDefault();
+    if (navigator.onLine) {
+        // User is online
+        try {
+            // Remove data from Realtime Database
+            await remove(ref(db, 'user/' + click_id));
+            alert("Data has been removed from the Realtime Database!");
+        } catch (error) {
+            console.error("Error removing data from Realtime Database:", error);
+            return;
+        }
+    } else { 
+        // User is offline
+        // Add data to local storage queue
+        addDataToDeleteData(click_id);
+        alert("Data will be removed from the Realtime Database when online.");
+    } 
+    removeData(click_id);
+        alert("Data has been removed from local storage!");
+        location.reload();
+});
+
+
+document.getElementById("editing").addEventListener('click', async function(e) {
+    e.preventDefault();
+    var check_title = title_2.value;
+    if ( date_2.value == "" || title_2.value == "" || info_2.value == "") {
+        alert("must input values");
+    } else if (!(/^\d+$/.test(click_id))) {
+        alert("Info must contain only numbers");
+    } else if (info_2.value.length !== 11 || !info_2.value.startsWith("09")) {
+        alert("invalid inputted number");
+    } else {
+        const exists = await info_finder_except_id(info_2, click_id);       
+        if (exists) {
+            alert("number already exists");
+        } else {
+            let newData = {
+              date: date_2.value,
+              title: title_2.value,
+              info: info_2.value
+            };
+            
+            let existingData = JSON.parse(localStorage.getItem('viewingData'));
+
+            // Find the index of the item with the specified id
+            let index = existingData.findIndex(item => item.id === click_id);
+
+            // Update the item with the new data
+            existingData[index] = newData;
+
+            // Save the updated data back to local storage
+            localStorage.setItem('viewingData', JSON.stringify(existingData));
+            alert("Data has been edited locally!");
+
+            // Check if online
+            if (navigator.onLine) {
+                // Update the data in the realtime database
+                update(ref(db, 'user/' + click_id), newData);
+                alert("Data has been edited in Firebase!");
+            } else {
+                // Save the edited data to a queue in local storage
+                addDataToEditedData(newData);
+                alert("Data has been edited locally. It will be synced when online.");
+            }
+
+            location.reload();
+        }
+    }
+    location.reload();
+});
+
+document.getElementById("remove_note").addEventListener('click', async function(e) {
+    id_data(click_id);
+});
+document.getElementById("edit_note").addEventListener('click', async function(e) {
+    id_data(click_id);
+});
+
+async function id_finder(id) {
+    let message = false;
+    const dbRef = ref(db);
+
+    let localData = JSON.parse(localStorage.getItem('viewingData')) || [];
+    localData.forEach((item) => {
+      console.log("id: ", item.id)
+        if (item.id == id) {
+            message = true;
+        }
+    });
+
+    if (message) {
+        id = id + 1;
+        return id_finder(id); // Recursive call
+    } else {
+        return id;
+    }
+}
+
+async function info_finder(type_note) {
+    var message = false;
+
+// Check local storage data
+    let localData = JSON.parse(localStorage.getItem('viewingData')) || [];
+    localData.forEach((item) => {
+        if (item.info == type_note.value) {
+            message = true;
+        }
+    });
+
+    return message;
+}
+
+async function info_finder_except_id(type_note, id) {
+    var message = false;
+
+// Check local storage data
+    let localData = JSON.parse(localStorage.getItem('viewingData')) || [];
+    localData.forEach((item) => {
+        if(item.id !== id){
+            if (item.info == type_note.value) {
+                message = true;
+            }
+        }
+    });
+
+    return message;
+}
+
+function addDataToDeleteData(id) {
+    // Get the existing queue from local storage
+    let existingQueue = localStorage.getItem('deleteData');
+
+    // Parse the existing queue into an array
+    existingQueue = existingQueue ? JSON.parse(existingQueue) : [];
+
+    // Add the new id to the queue
+    existingQueue.push(id);
+
+    // Save the updated queue back to local storage
+    localStorage.setItem('deleteData', JSON.stringify(existingQueue));
+}
+
+function removeData(id) {
+    // Get the existing data from local storage
+    let existingData = localStorage.getItem('viewingData');
+
+    // Parse the existing data into an array
+    existingData = existingData ? JSON.parse(existingData) : [];
+
+    // Find the index of the data with the given id
+    const index = existingData.findIndex(item => item.id === id);
+
+    // If the index is found, remove the data at that index
+    if (index !== -1) {
+        existingData.splice(index, 1);
+
+        // Save the updated data back to local storage
+        localStorage.setItem('viewingData', JSON.stringify(existingData));
+    }
+}
+
+function addDataToEditedData(data) {
+    // Get the existing queue from local storage
+    let existingQueue = localStorage.getItem('editedData');
+
+    // Parse the existing queue into an array
+    existingQueue = existingQueue ? JSON.parse(existingQueue) : [];
+
+    // Add the new data to the queue
+    existingQueue.push(data);
+
+    // Save the updated queue back to local storage
+    localStorage.setItem('editedQueue', JSON.stringify(existingQueue));
+}
+
+function id_data(id){
+    // Retrieve the data from local storage
+    let viewingData = JSON.parse(localStorage.getItem('viewingData'));
+    
+    // Find the item with the specified id in the local storage data
+    let note = viewingData.find(item => item.id === id);
+
+    // Update the UI with the found note or default values if not found
+    if (note) {
+        document.getElementById("date-1").value = note.date;
+        document.getElementById("title-1").value = note.title;
+        document.getElementById("info-1").value = note.info;
+        document.getElementById("date-2").value = note.date;
+        document.getElementById("title-2").value = note.title;
+        document.getElementById("info-2").value = note.info;
+    } else {
+        document.getElementById("date-1").value = "Date";
+        document.getElementById("title-1").value = "Title";
+        document.getElementById("info-1").value = "Info";
+        document.getElementById("date-2").value = "Date";
+        document.getElementById("title-2").value = "Title";
+        document.getElementById("info-2").value = "Info";
+    }
+}
+
+
+//     function note_data() {
+      
+//       get(child(dbRef, "user")).then((snapshot) => {
+//         snapshot.forEach((childSnapshot) => {
+//           data.push(childSnapshot.val());
+//         });
+
+//         const fragment = document.createDocumentFragment();
+//         data.forEach((element) => {
+//           const noteDiv = document.createElement('div');
+//           noteDiv.classList.add('note');
+//           noteDiv.innerHTML = `
+//           <div id="image_box">
+//             <img src="pic/profile_pic.png">
+//           </div>
+//           <div id="p_box">
+//             <p>${element.date}</p>
+//             <p>${element.title}</p>
+//             <p>${element.info}</p>
+//           </div>
+//           `;
+//           fragment.appendChild(noteDiv);
+//         });
+
+//         right_side_bar.innerHTML = '';
+//         right_side_bar.appendChild(fragment);
+//       });
+//     }
+
+//    document.getElementById("adding").addEventListener('click', async function(e) {
+//     e.preventDefault();
+//     if(title.value == "" && type_note.value == ""){
+//       alert("must imput values");
+//     }else if (!(/\d/.test(type_note.value))) {
+//        alert("Info must contain numbers");
+//     }else if(type_note.value.length !== 11 && !type_note.value.startsWith("09")){
+//        alert("invalid imputed number");
+//     } else {
+//         const exists = await info_finder(type_note);
+//         if (exists) {
+//             alert("number already exists");
+//         } else {
+//           id_finder(id).then((newId) => {
+//                 id = newId;
+//               set(ref(db, 'user/' + id), {
+//                   title: title.value,
+//                   info: type_note.value,
+//                   date: date.textContent,
+//               });
+//               alert("Data has been sent!");
+//               location.reload();
+//            }); 
+//         }
+//    }
+// });
+
+//   document.getElementById("deleting").addEventListener('click', function(e) {
+//     remove(ref(db, 'user/' + id_1.value), {
+
+//     });
+//     alert("Data has been removed!");
+//     location.reload();
+//   });
+
+//   document.getElementById("editing").addEventListener('click', async function(e) {
+//     if(title_2.value == "" && info_2.value == ""){
+//        alert("must imput values");
+//     }else if (!(/\d/.test(info_2.value))) {
+//        alert("Info must contain numbers");
+//     }else if(info_2.value.length !== 11 || !info_2.value.startsWith("09")){
+//        alert("invalid imputed number");
+//     } else {
+//         const exists = await info_finder(info_2);
+//         if (exists) {
+//             alert("number already exists");
+//         } else {
+//     update(ref(db, 'user/' + id_2.value), {
+//             title: title_2.value,
+//             info: info_2.value,
+//             date: date_2.value,
+//         });
+//         alert("Data has been edited!");
+//         location.reload();
+//       }
+//     }
+//   });
+
+//     window.onload = note_data;
+
+//     document.getElementById("id-1").addEventListener('input', function(e) {
+//     var id_1 = e.target.value;
+//     id_data(id)    
+// });
+//     document.getElementById("id-2").addEventListener('input', function(e) {
+//     var id_2 = e.target.value;
+//     id_data(id)    
+// });
+
+//    function id_data(id){
+//     let noteRef = ref(db, 'user/' + id);
+//     get(noteRef).then((snapshot) => {
+//         if (snapshot.exists()) {
+//             const note = snapshot.val();
+//             document.getElementById("date-1").value = note.date;
+//             document.getElementById("title-1").value = note.title;
+//             document.getElementById("info-1").value = note.info;
+//             document.getElementById("date-2").value = note.date;
+//             document.getElementById("title-2").value = note.title;
+//             document.getElementById("info-2").value = note.info;
+//         } else {
+//             document.getElementById("date-1").value = "Date";
+//             document.getElementById("title-1").value = "Title";
+//             document.getElementById("info-1").value = "Info";
+//             document.getElementById("date-2").value = "Date";
+//             document.getElementById("title-2").value = "Title";
+//             document.getElementById("info-2").value = "Info";
+//         }
+//     });
+//    }
+//    async function id_finder(id) {
+//     let message = false;
+//     const dbRef = ref(db);
+//     const snapshot = await get(child(dbRef, "user"));
+//     snapshot.forEach((childSnapshot) => {
+//         const key = childSnapshot.key;
+//         if (key == id) {
+//             message = true;
+//         }
+//     });
+
+//     if (message) {
+//         id = id + 1;
+//         return id_finder(id); // Recursive call
+//     } else {
+//         return id;
+//     }
+// }
+//    async function info_finder(type_note) {
+//     var message = false;
+//     var num_1 = 0;
+//     var num_2 = 0;
+
+//     const snapshot = await get(child(dbRef, "user"));
+//     snapshot.forEach((childSnapshot) => {
+//         const element = childSnapshot.val();
+//         num_1 = element.info;
+//         num_2 = type_note.value;
+//         console.log("element.info:", num_1);
+//         console.log("type_note.value:", num_2);
+//         if (num_1 == num_2) {
+//             message = true;
+//         }
+//     });
+//     return message;
+// } 
+   
+</script>
+<script src="js/note.js"></script>
+<script>
+    if ("serviceWorker" in navigator) {
+      console.log("the service worked");
+      navigator.serviceWorker.register('serverWorker.js');
+    }
+  </script>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "lang": "en-us",
+  "short_name": "Contacts Note",
+  "description": "A contacts note application taht only write your contacts with",
+  "start_url": "/",
+  "background_color": "#2f3d58",
+  "theme_color": "#2f3d58",
+  "orientation": "any",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "pic/book.png",
+      "sizes": "225x225"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "pic/screenshot_1.png",
+      "type": "image/png",
+      "sizes": "333x374",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "pic/screenshot_2.png",
+      "type": "image/png",
+      "sizes": "455x330",
+      "form_factor": "wide"
+    }
+  ]
+}
